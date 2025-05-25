@@ -1,0 +1,5 @@
+../Core/Src/plc.c:26:6:main_task	72	static
+../Core/Src/plc.c:222:6:timer_callback	24	static
+../Core/Src/plc.c:233:6:timer_init	16	static
+../Core/Src/plc.c:238:6:read_pin_input	8	static
+../Core/Src/plc.c:243:6:write_pin_output	8	static
