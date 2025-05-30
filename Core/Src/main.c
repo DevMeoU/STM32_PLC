@@ -1,22 +1,4 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -27,141 +9,69 @@
 #include "plc.h"
 #include "mPrint.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-#define A 0.0
-#define B 100.0
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
+/* Private variables --------------------------------------------------------- */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
-osThreadId_t main_taskHandle;
-const osThreadAttr_t main_task_attributes = {
-    .name = "main_task",
-    .stack_size = 1024 * 4,
-    .priority = (osPriority_t) osPriorityNormal,
-};
-
-/* Private function prototypes -----------------------------------------------*/
+/* Private function prototypes ----------------------------------------------- */
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
-void StartDefaultTask(void *argument);
+static void PLC_Init(void);
 
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-static uint8_t checksum(const uint8_t * data, size_t len) {
-    uint16_t sum = 0;
-    for (size_t i = 0; i < len; i++)
-        sum += data[i];
-    return sum & 0xFF;
-}
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-
-    /* USER CODE BEGIN 1 */
-
-    /* USER CODE END 1 */
-
-    /* MCU Configuration--------------------------------------------------------*/
-
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+int main(void) {
     HAL_Init();
-
-    /* USER CODE BEGIN Init */
-
-    /* USER CODE END Init */
-
-    /* Configure the system clock */
     SystemClock_Config();
-
-    /* USER CODE BEGIN SysInit */
-
-    /* USER CODE END SysInit */
-
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_USART2_UART_Init();
     MX_USART1_UART_Init();
-    /* USER CODE BEGIN 2 */
 
-    /* USER CODE END 2 */
-
-    /* Init scheduler */
     osKernelInitialize();
-    
-    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-    main_taskHandle = osThreadNew(main_task, NULL, &main_task_attributes);
 
-    if (defaultTaskHandle == NULL || main_taskHandle == NULL) {
-        mPrint("Failed to create threads.\n");
+    timer_init();
+
+    PLC_Init();
+
+    BaseType_t notifyTaskHandle = xTaskCreate(
+        StartNotifyTask,
+        "Notify_Task",
+        1024 * 1,
+        NULL,
+        3,
+        NULL
+    );
+    BaseType_t plcOprateTaskHandle = xTaskCreate(
+        startPLCOprateTask,
+        "PLC_Oprate_Task",
+        1024 * 1,
+        NULL,
+        2,
+        NULL
+    );
+
+    if (notifyTaskHandle != pdPASS || plcOprateTaskHandle != pdPASS)
+    {
         Error_Handler();
     }
-    
+
     /* Start scheduler */
-    osKernelStart();
+    vTaskStartScheduler();
 
     /* We should never get here as control is now taken by the scheduler */
 
     /* Infinite loop */
-    while (1)
-    {
-    }
+    while (1) {}
 }
 
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
+void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-    /** Configure the main internal regulator output voltage
-     */
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-    /** Initializes the RCC Oscillators according to the specified parameters
-     * in the RCC_OscInitTypeDef structure.
-     */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -171,48 +81,26 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
     RCC_OscInitStruct.PLL.PLLR = 2;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
+    if (HAL_RCC_OscConfig(& RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
 
-    /** Activate the Over-Drive mode
-     */
-    if (HAL_PWREx_EnableOverDrive() != HAL_OK)
-    {
+    if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
         Error_Handler();
     }
 
-    /** Initializes the CPU, AHB and APB buses clocks
-     */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
-    {
+    if (HAL_RCC_ClockConfig(& RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
         Error_Handler();
     }
 }
 
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-    /* USER CODE BEGIN USART1_Init 0 */
-
-    /* USER CODE END USART1_Init 0 */
-
-    /* USER CODE BEGIN USART1_Init 1 */
-
-    /* USER CODE END USART1_Init 1 */
+static void MX_USART1_UART_Init(void) {
     huart1.Instance = USART1;
     huart1.Init.BaudRate = 115200;
     huart1.Init.WordLength = UART_WORDLENGTH_8B;
@@ -221,31 +109,12 @@ static void MX_USART1_UART_Init(void)
     huart1.Init.Mode = UART_MODE_TX_RX;
     huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart1) != HAL_OK)
-    {
+    if (HAL_UART_Init(& huart1) != HAL_OK) {
         Error_Handler();
     }
-    /* USER CODE BEGIN USART1_Init 2 */
-
-    /* USER CODE END USART1_Init 2 */
-
 }
 
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-    /* USER CODE BEGIN USART2_Init 0 */
-
-    /* USER CODE END USART2_Init 0 */
-
-    /* USER CODE BEGIN USART2_Init 1 */
-
-    /* USER CODE END USART2_Init 1 */
+static void MX_USART2_UART_Init(void) {
     huart2.Instance = USART2;
     huart2.Init.BaudRate = 115200;
     huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -254,24 +123,15 @@ static void MX_USART2_UART_Init(void)
     huart2.Init.Mode = UART_MODE_TX_RX;
     huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart2) != HAL_OK)
-    {
+    if (HAL_UART_Init(& huart2) != HAL_OK) {
         Error_Handler();
     }
-    /* USER CODE BEGIN USART2_Init 2 */
-
-    /* USER CODE END USART2_Init 2 */
-
 }
 
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
+static void MX_GPIO_Init(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {
+        0
+    };
     /* USER CODE BEGIN MX_GPIO_Init_1 */
 
     /* USER CODE END MX_GPIO_Init_1 */
@@ -283,113 +143,56 @@ static void MX_GPIO_Init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, LD2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOA, LD2_Pin | GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_RESET);
 
-    /*Configure GPIO pin : B1_Pin */
+    /*Configure GPIO pin : B2_Pin */
     GPIO_InitStruct.Pin = B1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(B1_GPIO_Port, & GPIO_InitStruct);
+
+    /*Configure GPIO pin : B2_Pin Stop */
+    GPIO_InitStruct.Pin = B2_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(B2_GPIO_Port, & GPIO_InitStruct);
 
     /*Configure GPIO pins : LD2_Pin PA6 PA7 */
-    GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_6|GPIO_PIN_7;
+    GPIO_InitStruct.Pin = LD2_Pin | GPIO_PIN_6 | GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-    /* USER CODE END MX_GPIO_Init_2 */
+    HAL_GPIO_Init(GPIOA, & GPIO_InitStruct);
 }
 
-/* USER CODE BEGIN 4 */
+static void PLC_Init(void) {
+    xQueuePLC = xQueueCreate(10, sizeof(DataFrame_t));
 
-/* USER CODE END 4 */
-
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-    /* USER CODE BEGIN 5 */
-    /* Infinite loop */
-    for(;;)
-    {
-            float u_t = rand() / (float)RAND_MAX;   // cho temp
-            float u_h = rand() / (float)RAND_MAX;   // cho humidity
-            float temp = A + (B - A) * u_t;
-            float hump = A + (B - A) * u_h;
-        
-            uint8_t payload[4] = {
-                (uint8_t)((uint16_t)temp >> 8),
-                (uint8_t)((uint16_t)temp & 0xFF),
-                (uint8_t)((uint16_t)hump >> 8),
-                (uint8_t)((uint16_t)hump & 0xFF)
-            };
-        
-            // 3) tính checksum
-            const uint8_t LEN = sizeof(payload);
-            uint8_t cs = (LEN + checksum(payload, LEN)) & 0xFF;
-        
-            // 4) build frame
-            uint8_t frame[7] = {
-                0xAA,
-                LEN,
-                payload[0],
-                payload[1],
-                payload[2],
-                payload[3],
-                cs
-            };
-        
-            // 5) gửi qua UART_PORT
-            mPrint("Data value: Temperature: %.2f, Humidity: %.2f\n", temp, hump);
-            mPrint("Data send: ");
-            for(int i = 0; i < 7; i++)
-            {
-                mPrint("0x%02X ", frame[i]);
-            }
-            mPrint("\n");
-            mSendCommand(frame, sizeof(frame));
-        
-            osDelay(5000);
+    if (xQueuePLC == NULL) {
+        Error_Handler();
     }
-    /* USER CODE END 5 */
 }
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
+void Error_Handler(void) {
     /* USER CODE BEGIN Error_Handler_Debug */
-        /* User can add his own implementation to report the HAL error return state */
-        __disable_irq();
-        while (1)
-        {
-        }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1) {}
     /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t * file, uint32_t line) {
+    /* USER CODE BEGIN 6 */
     /* User can add his own implementation to report the file name and line number,
-        ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* USER CODE END 6 */
 }
-#endif /* USE_FULL_ASSERT */
+#endif/* USE_FULL_ASSERT */

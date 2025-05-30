@@ -1,5 +1,7 @@
-../Core/Src/plc.c:26:6:main_task	72	static
-../Core/Src/plc.c:222:6:timer_callback	24	static
-../Core/Src/plc.c:233:6:timer_init	16	static
-../Core/Src/plc.c:238:6:read_pin_input	8	static
-../Core/Src/plc.c:243:6:write_pin_output	8	static
+../Core/Src/plc.c:31:6:startPLCOprateTask	80	static
+../Core/Src/plc.c:236:6:StartNotifyTask	96	dynamic
+../Core/Src/plc.c:278:6:timer_callback	24	static
+../Core/Src/plc.c:289:6:timer_init	24	static,ignoring_inline_asm
+../Core/Src/plc.c:296:6:read_pin_input	8	static
+../Core/Src/plc.c:301:6:write_pin_output	8	static
+../Core/Src/plc.c:329:16:checksum	24	static

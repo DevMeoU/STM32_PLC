@@ -38,6 +38,7 @@ Core/Src/plc.o: ../Core/Src/plc.c ../Core/Inc/plc.h ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Core/Inc/mPrint.h
 ../Core/Inc/plc.h:
 ../Core/Inc/main.h:
@@ -80,4 +81,5 @@ Core/Src/plc.o: ../Core/Src/plc.c ../Core/Inc/plc.h ../Core/Inc/main.h \
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
 ../Core/Inc/mPrint.h:

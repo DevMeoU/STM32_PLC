@@ -23,11 +23,16 @@ volatile static uint8_t resetC1 = 0;
 volatile static const uint32_t datC1 = 50;
 volatile static uint8_t startC1 = 0;
 volatile static uint8_t checkC1 = 0;
-void main_task(void *param)
+
+static uint8_t checksum(const uint8_t * data, size_t len);
+
+QueueHandle_t xQueuePLC = NULL;
+
+void startPLCOprateTask(void *param)
 {
     while (1)
     {
-    	mPrint("PLC task running...\n");
+        mPrint("PLC task running...\n");
         read_pin_input();
         /*--------------NetWork 1 -----------*/
 
@@ -42,18 +47,7 @@ void main_task(void *param)
             checkEU0 = 1;
             I0_0sl0 = 1;
         }
-        volatile uint8_t I0_1sl1 = 1;
-        volatile static uint8_t checkEU1 = 1;
-        if (!(!I0_1))
-        {
-            checkEU1 = 0;
-        }
-        if ((!checkEU1) && (!I0_1))
-        {
-            checkEU1 = 1;
-            I0_1sl1 = 0;
-        }
-        M0_0 = (((I0_0sl0 + M0_0)) * !I0_1sl1);
+        M0_0 = (((I0_0sl0 + M0_0)) * !I0_1);
         if (M0_0 > 0)
         {
             M0_0 = 1;
@@ -75,7 +69,10 @@ void main_task(void *param)
 
                 if ((T37 == 0) && (checkT37 == 0))
                 {
-                    xTimerStart(handle_timerPLC[0], portMAX_DELAY);
+                    if(xTimerStart(handle_timerPLC[0], 10) != pdPASS)
+                    {
+                    	Error_Handler();
+                    }
                     checkT37 = 1;
                 }
             }
@@ -99,23 +96,23 @@ void main_task(void *param)
         }
         /*--------------NetWork 3 -----------*/
 
-        volatile uint8_t T37sl2 = 0;
-        volatile static uint8_t checkEU2 = 1;
+        volatile uint8_t T37sl1 = 0;
+        volatile static uint8_t checkEU1 = 1;
         if (!(T37))
         {
-            checkEU2 = 0;
+            checkEU1 = 0;
         }
-        if ((!checkEU2) && (T37))
+        if ((!checkEU1) && (T37))
         {
-            checkEU2 = 1;
-            T37sl2 = 1;
+            checkEU1 = 1;
+            T37sl1 = 1;
         }
         volatile uint8_t tempC1_0 = 0;
         if (countC1 >= 50)
         {
             tempC1_0 = 1;
         }
-        vaoC1 = (T37sl2);
+        vaoC1 = (T37sl1);
         resetC1 = (tempC1_0 + !M0_0);
         if (resetC1)
         {
@@ -207,18 +204,77 @@ void main_task(void *param)
             T37reset = 0;
         }
         write_pin_output();
+
+        DataFrame_t sendFrame;
+
+        if (xQueuePLC != NULL)
+        {
+            sendFrame.led_green = Q1_6;
+            sendFrame.led_red = Q2_0;
+            sendFrame.led_yellow = Q2_2;
+            sendFrame.reserved = 0;
+            sendFrame.sensor_value.u32sensor_v = 12345678; // Example value
+            sendFrame.sensor_value.fsensor_v = 12.34f; // Example value
+
+            if (xQueueSend(xQueuePLC, &sendFrame, portMAX_DELAY) != pdPASS)
+            {
+                mPrint("Failed to send data to queue\n");
+            }
+        }
+        else
+        {
+            mPrint("Queue is NULL\n");
+        }
+
         mPrint("I0_0: %d, I0_1: %d, M0_0: %d, T37: %d, countT37: %d, C1: %d, countC1: %d, Q1_6: %d, Q2_0: %d, Q2_2: %d\n",
                I0_0, I0_1, M0_0, T37, countT37, C1, countC1, Q1_6, Q2_0, Q2_2);
-        osDelay(250); // Delay to simulate PLC cycle time
-        if (countC1 >= 4294967295)
-        {
-            countC1 = 0;
-            C1 = 0;
-            startC1 = 0;
-            checkC1 = 0;
-        }
+
+        osDelay(100); // Delay to simulate PLC cycle time
     }
 }
+
+void StartNotifyTask(void * argument) {
+    
+    for (;;)
+    {
+        mPrint("Notify task running...\n");
+
+        if (xQueuePLC != NULL)
+        {
+            DataFrame_t receivedData;
+            if (xQueueReceive(xQueuePLC, &receivedData, portMAX_DELAY) == pdTRUE)
+            {
+                mSendCommand((uint8_t *)&receivedData, sizeof(DataFrame_t));
+                mPrint("Received data: LED Green: %d, LED Red: %d, LED Blue: %d, Sensor Value U32: %lu, Sensor Value F32: %.2f\n",
+                       receivedData.led_green,
+                       receivedData.led_red,
+                       receivedData.led_yellow,
+                       receivedData.sensor_value.u32sensor_v,
+                       receivedData.sensor_value.fsensor_v);
+            }
+
+            const uint8_t LEN = sizeof(DataFrame_t);
+            uint8_t cs = (LEN + checksum((uint8_t *)&receivedData, LEN)) & 0xFF;
+            
+            uint8_t frame[LEN + 3];
+            memset(frame, 0, sizeof(frame));
+
+            frame[0] = 0xAA; // Start byte
+            frame[1] = LEN; // Length of the data
+            memcpy(&frame[2], (uint8_t *)&receivedData, LEN);
+            frame[LEN+2] = cs;
+            mSendCommand(frame, sizeof(DataFrame_t)+3);
+        }
+        else
+        {
+            mPrint("Queue is NULL in Notify Task\n");
+        }
+
+        osDelay(250);
+    }
+    /* USER CODE END 5 */
+}
+
 void timer_callback(TimerHandle_t xTimer)
 {
     int id;
@@ -233,6 +289,8 @@ void timer_callback(TimerHandle_t xTimer)
 void timer_init(void)
 {
     handle_timerPLC[0] = xTimerCreate("timerTONT37", pdMS_TO_TICKS(100), pdTRUE, (void *const)(0 + 1), timer_callback);
+
+    configASSERT(handle_timerPLC[0]);
 }
 
 void read_pin_input(void)
@@ -266,4 +324,12 @@ void write_pin_output(void)
     {
         HAL_GPIO_WritePin(Q2_2_PORT, Q2_2_PIN, DISABLE);
     }
+}
+
+static uint8_t checksum(const uint8_t * data, size_t len)
+{
+    uint16_t sum = 0;
+    for (size_t i = 0; i < len; i++) 
+        sum += data[i];
+    return sum & 0xFF;
 }

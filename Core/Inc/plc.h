@@ -7,6 +7,9 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "timers.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
 
 // Define I
 #define IB0 	    I[0][0]
@@ -162,7 +165,7 @@
 
 // Define Input Pin
 #define I0_0_PIN    GPIO_PIN_13
-#define I0_1_PIN    GPIO_PIN_14
+#define I0_1_PIN    GPIO_PIN_0
 
 
 // Define Input Port
@@ -181,12 +184,26 @@
 #define Q2_0_PORT   GPIOA
 #define Q2_2_PORT   GPIOA
 
+typedef struct {
+    uint8_t led_green;   // Led green
+    uint8_t led_red;   // Led red
+    uint8_t led_yellow;   // Led yellow
+    uint8_t reserved; // Reserved for future use
+    union
+    {
+        uint32_t u32sensor_v; // Giá trị cảm biến 32 bit
+        float fsensor_v; // Giá trị cảm biến 32 bit dưới dạng float
+    } sensor_value; // Giá trị cảm biến
+} DataFrame_t;
+
 extern volatile uint16_t AI[3];
 extern TimerHandle_t handle_timerPLC[1];
+extern QueueHandle_t xQueuePLC;
 
 void read_pin_input(void);
 void write_pin_output(void);
-void main_task(void *param) ;
+void startPLCOprateTask(void *param);
+void StartNotifyTask(void * argument);
 void timer_callback(TimerHandle_t xTimer);
 void timer_init(void);
 

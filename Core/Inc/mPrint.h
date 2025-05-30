@@ -9,7 +9,7 @@
 #include "stm32f4xx_hal.h"
 
 
-#define PRINT_BUFFER_SIZE 100
+#define PRINT_BUFFER_SIZE 250
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
