@@ -184,6 +184,12 @@
 #define Q2_0_PORT   GPIOA
 #define Q2_2_PORT   GPIOA
 
+// Random sensor value
+#define R			((float)rand()/(float)RAND_MAX)
+#define MIN_RATE	(20.0f)
+#define MAX_RATE	(50.0f)
+#define RAND_SENSOR_VALUE (MIN_RATE + R * (MAX_RATE - MIN_RATE));
+
 typedef struct {
     uint8_t led_green;   // Led green
     uint8_t led_red;   // Led red

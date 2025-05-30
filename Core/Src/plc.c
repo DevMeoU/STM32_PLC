@@ -213,8 +213,7 @@ void startPLCOprateTask(void *param)
             sendFrame.led_red = Q2_0;
             sendFrame.led_yellow = Q2_2;
             sendFrame.reserved = 0;
-            sendFrame.sensor_value.u32sensor_v = 12345678; // Example value
-            sendFrame.sensor_value.fsensor_v = 12.34f; // Example value
+            sendFrame.sensor_value.fsensor_v = RAND_SENSOR_VALUE;
 
             if (xQueueSend(xQueuePLC, &sendFrame, portMAX_DELAY) != pdPASS)
             {
@@ -245,7 +244,7 @@ void StartNotifyTask(void * argument) {
             if (xQueueReceive(xQueuePLC, &receivedData, portMAX_DELAY) == pdTRUE)
             {
                 mSendCommand((uint8_t *)&receivedData, sizeof(DataFrame_t));
-                mPrint("Received data: LED Green: %d, LED Red: %d, LED Blue: %d, Sensor Value U32: %lu, Sensor Value F32: %.2f\n",
+                mPrint("Received data: LED Green: %d, LED Red: %d, LED Yellow: %d, Sensor Value U32: %lu, Sensor Value F32: %.2f\n",
                        receivedData.led_green,
                        receivedData.led_red,
                        receivedData.led_yellow,
