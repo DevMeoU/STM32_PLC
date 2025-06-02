@@ -6,7 +6,7 @@
 #include <string.h>
 #include "main.h"
 #include "cmsis_os.h"
-#include "plc.h"
+#include "DataPLC.h"
 #include "mPrint.h"
 
 /* Private variables --------------------------------------------------------- */
@@ -30,20 +30,20 @@ int main(void) {
 
     osKernelInitialize();
 
-    timer_init();
+    PLC_InitTimer();
 
     PLC_Init();
 
     BaseType_t notifyTaskHandle = xTaskCreate(
-        StartNotifyTask,
-        "Notify_Task",
+        PLC_SendDataTask,
+        "PLC_Notify_Task",
         1024 * 1,
         NULL,
         3,
         NULL
     );
     BaseType_t plcOprateTaskHandle = xTaskCreate(
-        startPLCOprateTask,
+        PLC_ProcessTask,
         "PLC_Oprate_Task",
         1024 * 1,
         NULL,
@@ -166,7 +166,7 @@ static void MX_GPIO_Init(void) {
 }
 
 static void PLC_Init(void) {
-    xQueuePLC = xQueueCreate(10, sizeof(DataFrame_t));
+    xQueuePLC = xQueueCreate(10, sizeof(PLC_DataFrame_t));
 
     if (xQueuePLC == NULL) {
         Error_Handler();

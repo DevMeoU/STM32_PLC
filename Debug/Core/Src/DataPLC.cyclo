@@ -1,0 +1,7 @@
+../Core/Src/DataPLC.c:30:6:PLC_ProcessTask	37
+../Core/Src/DataPLC.c:267:6:PLC_SendDataTask	3
+../Core/Src/DataPLC.c:309:6:PLC_TimerCallBack	2
+../Core/Src/DataPLC.c:320:6:PLC_InitTimer	1
+../Core/Src/DataPLC.c:325:6:PLC_Read_Pin_Input	1
+../Core/Src/DataPLC.c:330:6:PLC_Write_Pin_Output	4
+../Core/Src/DataPLC.c:358:16:checksum	2

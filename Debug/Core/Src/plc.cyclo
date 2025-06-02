@@ -1,7 +1,0 @@
-../Core/Src/plc.c:31:6:startPLCOprateTask	31
-../Core/Src/plc.c:235:6:StartNotifyTask	3
-../Core/Src/plc.c:277:6:timer_callback	2
-../Core/Src/plc.c:288:6:timer_init	2
-../Core/Src/plc.c:295:6:read_pin_input	1
-../Core/Src/plc.c:300:6:write_pin_output	4
-../Core/Src/plc.c:328:16:checksum	2
