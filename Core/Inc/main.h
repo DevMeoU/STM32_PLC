@@ -77,7 +77,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define ADC_CHANNELS  1
 #define SENSOR_INPUT_PIN  GPIO_PIN_1
-#define SENSOR_INPUT_PORT GPIOC
+#define SENSOR_INPUT_PORT GPIOA
 
 /* USER CODE END Private defines */
 

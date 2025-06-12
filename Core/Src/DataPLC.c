@@ -42,9 +42,8 @@ void PLC_ProcessTask(void *param)
             M0_0 = 0;
         }
         /*--------------NetWork 2 -----------*/
-
         if ((M0_0))
-            u16VW1 = AIW0;
+            u16VW1 = AI[0]; // Đọc giá trị cảm biến từ AI[0] (DMA cập nhật)
         M1_1 = (M0_0);
         if (M1_1 > 0)
         {
@@ -65,11 +64,11 @@ void PLC_ProcessTask(void *param)
         /*--------------NetWork 5 -----------*/
 
         if ((M0_0))
-            f32VD[0] = f32VD[0] / 4096.0;
+            f32VD[0] = (f32VD[0] / 4095.0f) * 3300.0f; // Đổi ADC 12bit (0..4095) về mV (Vref=3.3V)
         /*--------------NetWork 6 -----------*/
 
         if ((M0_0))
-            f32VD[0] = f32VD[0] * 100.0;
+            f32VD[0] = (f32VD[0] - 500.0f) / 10.0f; // Đổi mV sang độ C cho LM35 (10mV/°C, offset 500mV)
         /*--------------NetWork 7 -----------*/
 
         volatile uint8_t u8Compare0 = 0;
@@ -109,7 +108,7 @@ void PLC_ProcessTask(void *param)
             mPrint("Queue is NULL\n");
         }
 
-        mPrint("LED Status: %d, Sensor Value: %.2f\n", Q0_0, f32VD[0]);
+        mPrint("LED Status: %d, Temperature Sensor Value: %.2f °C\n", Q0_0, f32VD[0]);
 
         osDelay(100); // Delay to simulate PLC cycle time
     }

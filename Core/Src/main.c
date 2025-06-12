@@ -13,6 +13,9 @@
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 uint16_t adcBuffer[ADC_CHANNELS];
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+volatile uint8_t DataReadyFlag = 0;
 
 /* Private function prototypes ----------------------------------------------- */
 void SystemClock_Config(void);
@@ -31,10 +34,13 @@ int main(void) {
     MX_GPIO_Init();
     MX_USART2_UART_Init();
     MX_USART1_UART_Init();
+    MX_DMA_Init();
+    MX_ADC1_Init();
 
     osKernelInitialize();
 
     PLC_Init();
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
 
     BaseType_t notifyTaskHandle = xTaskCreate(
         PLC_SendDataTask,
@@ -147,7 +153,7 @@ static void MX_GPIO_Init(void) {
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, LD2_Pin | GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_RESET);
 
-    /*Configure GPIO pin : B2_Pin */
+    /*Configure GPIO pin : B1_Pin Start */
     GPIO_InitStruct.Pin = B1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -169,29 +175,49 @@ static void MX_GPIO_Init(void) {
 
 void MX_DMA_Init(void) {
     /* DMA controller clock enable */
-    __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
 
-    /* DMA interrupt init */
-    /* DMA1_Stream5_IRQn interrupt configuration */
-    HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-    /* DMA1_Stream6_IRQn interrupt configuration */
-    HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+    HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 }
 
-static void MX_ADC1_Init(void) {
+static void MX_ADC1_Init(void)
+{
     ADC_ChannelConfTypeDef sConfig = {0};
+
+    hadc1.Instance = ADC1;
+    hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+    hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+    hadc1.Init.ScanConvMode = DISABLE;
+    hadc1.Init.ContinuousConvMode = ENABLE;
+    hadc1.Init.DiscontinuousConvMode = DISABLE;
+    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+    hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc1.Init.NbrOfConversion = 1;
+    hadc1.Init.DMAContinuousRequests = ENABLE;
+    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    if (HAL_ADC_Init(&hadc1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
     sConfig.Channel = ADC_CHANNEL_1;
     sConfig.Rank = 1;
     sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    if (HAL_ADC_ConfigChannel(& hadc1, & sConfig) != HAL_OK) {
-        Error_Handler();
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    {
+    Error_Handler();
     }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-    HAL_ADC_Start_DMA(& hadc1, (uint32_t*) AI, 8);
+    if (hadc->Instance == ADC1) {
+        // buffer AI[0..7] đã đầy: xử lý hoặc đánh dấu
+        DataReadyFlag = 1;
+        // khởi động lại DMA để tiếp tục đọc (nếu muốn vòng lặp liên tục)
+        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
+    }
 }
 
 static void PLC_Init(void) {
