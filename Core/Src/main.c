@@ -12,12 +12,16 @@
 /* Private variables --------------------------------------------------------- */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+uint16_t adcBuffer[ADC_CHANNELS];
 
 /* Private function prototypes ----------------------------------------------- */
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_DMA_Init(void);
+static void MX_ADC1_Init(void);
+
 static void PLC_Init(void);
 
 int main(void) {
@@ -29,8 +33,6 @@ int main(void) {
     MX_USART1_UART_Init();
 
     osKernelInitialize();
-
-    PLC_InitTimer();
 
     PLC_Init();
 
@@ -163,6 +165,33 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, & GPIO_InitStruct);
+}
+
+void MX_DMA_Init(void) {
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA interrupt init */
+    /* DMA1_Stream5_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+    /* DMA1_Stream6_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+}
+
+static void MX_ADC1_Init(void) {
+    ADC_ChannelConfTypeDef sConfig = {0};
+    sConfig.Channel = ADC_CHANNEL_1;
+    sConfig.Rank = 1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    if (HAL_ADC_ConfigChannel(& hadc1, & sConfig) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    HAL_ADC_Start_DMA(& hadc1, (uint32_t*) AI, 8);
 }
 
 static void PLC_Init(void) {

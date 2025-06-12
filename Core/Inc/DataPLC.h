@@ -149,14 +149,14 @@
 #define u32VD7      u32VD[7]
 
 /*  Define float VD */
-#define f32VD10     f32VD1[0]
-#define f32VD11     f32VD1[1]
-#define f32VD12     f32VD1[2]
-#define f32VD13     f32VD1[3]
-#define f32VD14     f32VD1[4]
-#define f32VD15     f32VD1[5]
-#define f32VD16     f32VD1[6]
-#define f32VD17     f32VD1[7]
+#define f32VD0      f32VD[0]
+#define f32VD1      f32VD[1]
+#define f32VD2      f32VD[2]
+#define f32VD3      f32VD[3]
+#define f32VD4      f32VD[4]
+#define f32VD5      f32VD[5]
+#define f32VD6      f32VD[6]
+#define f32VD7      f32VD[7]
 
 // Define Input Pin
 #define I0_0_PIN    GPIO_PIN_13
@@ -169,15 +169,10 @@
 
 
 // Define Output pin
-#define Q1_6_PIN    GPIO_PIN_5        /* Led Green: Q1_6    */
-#define Q2_0_PIN    GPIO_PIN_6        /* Led Red: Q2_0      */
-#define Q2_2_PIN    GPIO_PIN_7        /* Led Yellow: Q2_2   */
-
+#define Q0_0_PIN    GPIO_PIN_5
 
 /* Define Output Port */
-#define Q1_6_PORT   GPIOA
-#define Q2_0_PORT   GPIOA
-#define Q2_2_PORT   GPIOA
+#define Q0_0_PORT   GPIOA
 
 /* Define Random values */
 #define R			((float)rand()/(float)RAND_MAX)
@@ -188,10 +183,8 @@
 
 /* Define data frame */
 typedef struct {
-    uint8_t led_green;   /** Led green */
-    uint8_t led_red;   /** Led red */
-    uint8_t led_yellow;   /** Led yellow */
-    uint8_t reserved; /** Reserved for future use */
+    uint8_t led_status; /** Trạng thái led */
+    uint8_t reserved[3];
     union
     {
         uint32_t u32sensor_v; /** Giá trị cảm biến 32 bit */
@@ -201,7 +194,6 @@ typedef struct {
 
 /* Define global variable */
 extern volatile uint16_t AI[8];
-extern TimerHandle_t handle_timerPLC[1];
 extern QueueHandle_t xQueuePLC;
 
 /* Define function prototype */
@@ -209,7 +201,5 @@ void PLC_ProcessTask(void *param);
 void PLC_SendDataTask(void *param);
 void PLC_Read_Pin_Input(void);
 void PLC_Write_Pin_Output(void);
-void PLC_TimerCallBack(TimerHandle_t xTimer);
-void PLC_InitTimer(void);
 
 #endif /*INC_CSDL_H_*/

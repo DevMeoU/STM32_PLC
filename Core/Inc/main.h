@@ -75,6 +75,10 @@ void Error_Handler(void);
 #define SWO_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define ADC_CHANNELS  1
+#define SENSOR_INPUT_PIN  GPIO_PIN_1
+#define SENSOR_INPUT_PORT GPIOC
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

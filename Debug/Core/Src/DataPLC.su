@@ -1,7 +1,5 @@
-../Core/Src/DataPLC.c:30:6:PLC_ProcessTask	80	static
-../Core/Src/DataPLC.c:267:6:PLC_SendDataTask	96	dynamic
-../Core/Src/DataPLC.c:309:6:PLC_TimerCallBack	24	static
-../Core/Src/DataPLC.c:320:6:PLC_InitTimer	16	static
-../Core/Src/DataPLC.c:325:6:PLC_Read_Pin_Input	8	static
-../Core/Src/DataPLC.c:330:6:PLC_Write_Pin_Output	8	static
-../Core/Src/DataPLC.c:358:16:checksum	24	static
+../Core/Src/DataPLC.c:15:6:PLC_ProcessTask	40	static
+../Core/Src/DataPLC.c:118:6:PLC_SendDataTask	64	dynamic
+../Core/Src/DataPLC.c:159:6:PLC_Read_Pin_Input	8	static
+../Core/Src/DataPLC.c:166:6:PLC_Write_Pin_Output	8	static
+../Core/Src/DataPLC.c:178:16:checksum	24	static
