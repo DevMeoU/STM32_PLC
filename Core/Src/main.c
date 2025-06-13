@@ -213,9 +213,7 @@ static void MX_ADC1_Init(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
-        // buffer AI[0..7] đã đầy: xử lý hoặc đánh dấu
         DataReadyFlag = 1;
-        // khởi động lại DMA để tiếp tục đọc (nếu muốn vòng lặp liên tục)
         HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
     }
 }

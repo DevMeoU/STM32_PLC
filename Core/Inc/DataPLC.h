@@ -176,20 +176,23 @@
 
 /* Define Random values */
 #define R			((float)rand()/(float)RAND_MAX)
-#define MIN_RATE	(20.0f)
-#define MAX_RATE	(50.0f)
+#define MIN_RATE	(30.0) // Giá trị cảm biến tối thiểu của cảm biến LM35
+#define MAX_RATE	(60.0) // Giá trị cảm biến tối đa của cảm biến LM35
+/* Define Random sensor value */
 #define RAND_SENSOR_VALUE (MIN_RATE + R * (MAX_RATE - MIN_RATE));
 
 
 /* Define data frame */
+typedef union {
+    uint32_t u32sensor_v; /** Giá trị cảm biến 32 bit */
+    float fsensor_v; /** Giá trị cảm biến 32 bit d?u dạng float */
+} sensor_value; /** Giá trị cảm biến */
+
 typedef struct {
     uint8_t led_status; /** Trạng thái led */
     uint8_t reserved[3];
-    union
-    {
-        uint32_t u32sensor_v; /** Giá trị cảm biến 32 bit */
-        float fsensor_v; /** Giá trị cảm biến 32 bit d?u dạng float */
-    } sensor_value; /** Giá trị cảm biến */
+    sensor_value temperature; /** Giá trị cảm biến nhiệt độ */
+    sensor_value temperature_fake; /** Giá trị cảm biến nhiệt độ giả lập */
 } PLC_DataFrame_t;
 
 /* Define global variable */

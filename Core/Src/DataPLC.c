@@ -96,7 +96,8 @@ void PLC_ProcessTask(void *param)
             sendFrame.reserved[0] = 0; // Reserved bytes
             sendFrame.reserved[1] = 0;
             sendFrame.reserved[2] = 0;
-            sendFrame.sensor_value.fsensor_v = f32VD[0];
+            sendFrame.temperature.fsensor_v = f32VD[0];
+            sendFrame.temperature_fake.fsensor_v = RAND_SENSOR_VALUE; // Simulated sensor value
 
             if (xQueueSend(xQueuePLC, &sendFrame, portMAX_DELAY) != pdPASS)
             {
