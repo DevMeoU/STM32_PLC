@@ -109,8 +109,10 @@ void PLC_ProcessTask(void *param)
             mPrint("Queue is NULL\n");
         }
 
-        mPrint("LED Status: %d, Temperature Sensor Value: %.2f °C\n", Q0_0, f32VD[0]);
-
+        mPrint("LED Status: %d, \
+                Temperature Sensor Value: %.2f °C, \
+                Temperature Fake Value: %.2f °C\n",
+                Q0_0, f32VD[0], sendFrame.temperature_fake.fsensor_v);
         osDelay(100); // Delay to simulate PLC cycle time
     }
 }
@@ -127,7 +129,10 @@ void PLC_SendDataTask(void * argument) {
             if (xQueueReceive(xQueuePLC, &receivedData, portMAX_DELAY) == pdTRUE)
             {
                 mSendCommand((uint8_t *)&receivedData, sizeof(PLC_DataFrame_t));
-                mPrint("Received data: LED Status: %d, Sensor Value: %.2f\n", receivedData.led_status, receivedData.sensor_value.fsensor_v);
+                mPrint("Received data: LED Status: %d, \
+                        Temperature Sensor Value: %.2f °C, \
+                        Temperature Fake Value: %.2f °C\n",
+                        receivedData.led_status, receivedData.temperature.fsensor_v, receivedData.temperature_fake.fsensor_v);
             }
             else
             {
