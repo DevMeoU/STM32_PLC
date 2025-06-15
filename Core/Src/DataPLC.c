@@ -64,11 +64,11 @@ void PLC_ProcessTask(void *param)
         /*--------------NetWork 5 -----------*/
 
         if ((M0_0))
-            f32VD[0] = (f32VD[0] / 4095.0f) * 3300.0f; // Đổi ADC 12bit (0..4095) về mV (Vref=3.3V)
+            f32VD[0] = f32VD[0] * 330.0f; // Đổi ADC 12bit (0..4095) về mV (Vref=3.3V)
         /*--------------NetWork 6 -----------*/
 
         if ((M0_0))
-            f32VD[0] = f32VD[0] / 10.0f; // Đổi mV sang độ C cho LM35 (10mV/°C, not offset)
+            f32VD[0] = f32VD[0] / 4095.0f; // Đổi mV sang độ C cho LM35 (10mV/°C, not offset)
         /*--------------NetWork 7 -----------*/
 
         volatile uint8_t u8Compare0 = 0;
