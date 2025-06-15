@@ -68,7 +68,7 @@ void PLC_ProcessTask(void *param)
         /*--------------NetWork 6 -----------*/
 
         if ((M0_0))
-            f32VD[0] = (f32VD[0] - 500.0f) / 10.0f; // Đổi mV sang độ C cho LM35 (10mV/°C, offset 500mV)
+            f32VD[0] = f32VD[0] / 10.0f; // Đổi mV sang độ C cho LM35 (10mV/°C, not offset)
         /*--------------NetWork 7 -----------*/
 
         volatile uint8_t u8Compare0 = 0;

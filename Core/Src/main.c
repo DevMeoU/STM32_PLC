@@ -12,7 +12,6 @@
 /* Private variables --------------------------------------------------------- */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-uint16_t adcBuffer[ADC_CHANNELS];
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 volatile uint8_t DataReadyFlag = 0;
@@ -37,10 +36,12 @@ int main(void) {
     MX_DMA_Init();
     MX_ADC1_Init();
 
+    // Chỉ gọi 1 lần, dùng AI làm buffer
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
+
     osKernelInitialize();
 
     PLC_Init();
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
 
     BaseType_t notifyTaskHandle = xTaskCreate(
         PLC_SendDataTask,
@@ -89,7 +90,7 @@ void SystemClock_Config(void) {
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = 2;
     RCC_OscInitStruct.PLL.PLLR = 2;
-    if (HAL_RCC_OscConfig(& RCC_OscInitStruct) != HAL_OK) {
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
 
@@ -103,7 +104,7 @@ void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-    if (HAL_RCC_ClockConfig(& RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -117,7 +118,7 @@ static void MX_USART1_UART_Init(void) {
     huart1.Init.Mode = UART_MODE_TX_RX;
     huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(& huart1) != HAL_OK) {
+    if (HAL_UART_Init(&huart1) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -131,50 +132,39 @@ static void MX_USART2_UART_Init(void) {
     huart2.Init.Mode = UART_MODE_TX_RX;
     huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(& huart2) != HAL_OK) {
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
         Error_Handler();
     }
 }
 
 static void MX_GPIO_Init(void) {
-    GPIO_InitTypeDef GPIO_InitStruct = {
-        0
-    };
-    /* USER CODE BEGIN MX_GPIO_Init_1 */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    /* USER CODE END MX_GPIO_Init_1 */
-
-    /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOH_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
-    /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, LD2_Pin | GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_RESET);
 
-    /*Configure GPIO pin : B1_Pin Start */
     GPIO_InitStruct.Pin = B1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(B1_GPIO_Port, & GPIO_InitStruct);
+    HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pin : B2_Pin Stop */
     GPIO_InitStruct.Pin = B2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(B2_GPIO_Port, & GPIO_InitStruct);
+    HAL_GPIO_Init(B2_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : LD2_Pin PA6 PA7 */
     GPIO_InitStruct.Pin = LD2_Pin | GPIO_PIN_6 | GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, & GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 void MX_DMA_Init(void) {
-    /* DMA controller clock enable */
     __HAL_RCC_DMA2_CLK_ENABLE();
 
     HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
@@ -207,14 +197,14 @@ static void MX_ADC1_Init(void)
     sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
     {
-    Error_Handler();
+        Error_Handler();
     }
 }
 
+// Callback chỉ set flag, không gọi lại HAL_ADC_Start_DMA
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
         DataReadyFlag = 1;
-        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)AI, 8);
     }
 }
 
@@ -227,11 +217,8 @@ static void PLC_Init(void) {
 }
 
 void Error_Handler(void) {
-    /* USER CODE BEGIN Error_Handler_Debug */
-    /* User can add his own implementation to report the HAL error return state */
     __disable_irq();
     while (1) {}
-    /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
